@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import discord
 from discord import app_commands, Embed
+from discord.app_commands import describe
 import pytz
 from discord.ext import tasks
 
@@ -33,7 +34,8 @@ class Video():
         except ValueError:
             raise VideoIdSyntaxError("ID syntax is invalid: " + id)
 
-videos: list[Video] = [Video("sm9")]
+videos: list[Video] = [Video("sm44115451"),Video("sm44103999"),Video("sm44096222"),Video("sm44089041"),Video("sm44082334")]
+MAX_COMMENTS: int = 10
 
 TOKEN: str = config.TOKEN
 CHANNEL_ID: int = int(config.CHANNEL_ID) 
@@ -41,6 +43,9 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
+
+def debug(message: str):
+    print(datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S") + ' ' + message)
 
 async def Send(message: Union[str, Embed], message_en: Union[str, None] = None):
     channel = client.get_channel(CHANNEL_ID)
@@ -53,7 +58,7 @@ async def Send(message: Union[str, Embed], message_en: Union[str, None] = None):
         await channel.send(message)
     else:
         await channel.send(embed=message)
-    print(datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S") + ' ' + message_en)
+    debug(message_en)
 
 """
 https://zenn.dev/doma_itachi/articles/c448d4b6271d32
@@ -146,15 +151,15 @@ async def NicoCome():
             Send(f"An unexpected error occurred: {e}")
             break
 
-        if len(comments) > 50:
-            _embed = Embed(title=id,description='\n'.join(comments[:51]) + '\n\n' + f'他{len(comments) - 50}件', color=0xf5f5f5)
+        if len(comments) > MAX_COMMENTS:
+            _embed = Embed(title=id,description='\n'.join(comments[:MAX_COMMENTS]) + '\n\n' + f'他{len(comments) - MAX_COMMENTS}件', color=0x006e54)
             count += 1
         elif len(comments) > 0:
-            _embed = Embed(title=id,description='\n'.join(comments), color=0xdcdcdc)
+            _embed = Embed(title=id,description='\n'.join(comments), color=0x66cdaa if count % 2 == 0 else 0x3cb371)
             count += 1
         await Send(_embed, f'{len(comments)} comments have been fetched')
     if count == 0:
-        _embed = Embed(description='新着コメントはありません', color=0x8a2be2)
+        _embed = Embed(description='新着コメントはありません', color=0x4d4398)
         await Send(_embed, 'No new comments')
 
 @tasks.loop(seconds=30)
@@ -163,12 +168,45 @@ async def check_time():
     if now.hour == 0 and now.minute == 0:
         await Send('日付が変わりました', 'Date has changed')
 
+
+@tree.command(name = 'add', description='新着コメントを取得する動画を登録')
+@describe(id = '動画のID sm形式')
+async def add(ctx: discord.Interaction, id: str):
+    debug(f'Command: add {id}')
+    try:
+        video = Video(id)
+        videos.append(video)
+        await ctx.response.send_message(f'{id}を追加しました' + '\n' + f'https://www.nicovideo.jp/watch/{id}')
+        debug(f'{id} has been added')
+    except VideoIdSyntaxError as e:
+        await ctx.response.send_message(f'{e}')
+        debug(f'{e}') 
+
+@tree.command(name = 'show', description='登録されている動画の一覧を表示')
+async def show(ctx: discord.Interaction):
+    debug('Command: show')
+    _embed = Embed(title='動画の一覧', description='\n'.join([video.id for video in videos]), color=0x87ceeb)
+    await ctx.response.send_message(embed=_embed)
+
+@tree.command(name = 'remove', description='動画の登録を解除')
+@describe(id = '動画のID sm形式')
+async def remove(ctx: discord.Interaction, id: str):
+    debug(f'Command: remove {id}')
+    for video in videos:
+        if video.id == id:
+            videos.remove(video)
+            await ctx.response.send_message(f'{id}の登録を解除しました')
+            debug(f'{id} has been removed')
+            return
+    await ctx.response.send_message(f'{id}は登録されていません')
+    debug(f'{id} is not registered')
+
 @client.event
 async def on_ready():
     await Send('ボットを起動', 'Bot has started')
     await client.change_presence(activity=discord.Game("ニコニコ動画"))
-    # await tree.sync()
-    # await Send('コマンドツリーを同期', 'Command tree has been synced')
+    await tree.sync()
+    await Send('コマンドツリーを同期', 'Command tree has been synced')
     await NicoCome()
     check_time.start()
 
