@@ -39,8 +39,7 @@ class Video():
             raise VideoIdSyntaxError("ID syntax is invalid: " + id)
 
 
-videos: list[Video] = [Video("sm44115451"), Video("sm44103999"), Video(
-    "sm44096222"), Video("sm44089041"), Video("sm44082334")]
+videos: list[Video] = []
 MAX_COMMENTS: int = 10
 
 TOKEN: str = config.TOKEN
