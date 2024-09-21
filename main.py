@@ -12,18 +12,21 @@ import config
 import asyncio
 import aiohttp
 
+
 class VideoIdSyntaxError(Exception):
     """Idが不正である場合のエラー"""
+
     def __init__(self, message="ID syntax is invalid"):
         self.message = message
         super().__init__(self.message)
+
 
 class Video():
     def __init__(self, id: str, title: Union[str, None] = None):
         try:
             if not id.startswith("sm"):
                 raise VideoIdSyntaxError("ID syntax is invalid: " + id)
-            
+
             _n = int(id[2:])
 
             if _n < 1:
@@ -34,18 +37,22 @@ class Video():
         except ValueError:
             raise VideoIdSyntaxError("ID syntax is invalid: " + id)
 
-videos: list[Video] = [Video("sm44115451"),Video("sm44103999"),Video("sm44096222"),Video("sm44089041"),Video("sm44082334")]
+
+videos: list[Video] = [Video("sm44115451"), Video("sm44103999"), Video(
+    "sm44096222"), Video("sm44089041"), Video("sm44082334")]
 MAX_COMMENTS: int = 10
 
 TOKEN: str = config.TOKEN
-CHANNEL_ID: int = int(config.CHANNEL_ID) 
+CHANNEL_ID: int = int(config.CHANNEL_ID)
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 
 def debug(message: str):
-    print(datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S") + ' ' + message)
+    print(datetime.now(pytz.timezone("Asia/Tokyo")
+                       ).strftime("%Y-%m-%d %H:%M:%S") + ' ' + message)
+
 
 async def Send(message: Union[str, Embed], message_en: Union[str, None] = None):
     channel = client.get_channel(CHANNEL_ID)
@@ -63,17 +70,23 @@ async def Send(message: Union[str, Embed], message_en: Union[str, None] = None):
 """
 https://zenn.dev/doma_itachi/articles/c448d4b6271d32
 """
+
+
 class ThreadIdFetchError(Exception):
     """スレッドIDの取得に失敗した場合に発生するエラー"""
+
     def __init__(self, message="Failed to fetch thread ID"):
         self.message = message
         super().__init__(self.message)
 
+
 class ThreadKeyFetchError(Exception):
     """スレッドキーの取得に失敗した場合に発生するエラー"""
+
     def __init__(self, message="Failed to fetch thread key"):
         self.message = message
         super().__init__(self.message)
+
 
 class ThreadRequestBody:
     def __init__(self, thread_id: str, thread_key: str):
@@ -88,10 +101,12 @@ class ThreadRequestBody:
         self.threadKey = thread_key
         self.additionals = {}
 
+
 class ThreadResponse:
     def __init__(self, data: Dict):
         self.meta = data['meta']
         self.data = data['data']
+
 
 async def fetch_comments(url: str) -> ThreadResponse:
     endpoint = "https://public.nvcomment.nicovideo.jp/v1/threads"
@@ -120,6 +135,7 @@ async def fetch_comments(url: str) -> ThreadResponse:
 
     return ThreadResponse(thread_response)
 
+
 async def select_comments_after_datetime(response: ThreadResponse, after: datetime) -> list[str]:
     comments = []
     for comment in response.data['threads'][1]['comments']:
@@ -128,6 +144,7 @@ async def select_comments_after_datetime(response: ThreadResponse, after: dateti
             print(comment['body'])
             comments.append(comment['body'])
     return comments
+
 
 async def NicoCome():
     await Send('コメント取得を開始', 'Start fetching comments')
@@ -152,25 +169,28 @@ async def NicoCome():
             break
 
         if len(comments) > MAX_COMMENTS:
-            _embed = Embed(title=id,description='\n'.join(comments[:MAX_COMMENTS]) + '\n\n' + f'他{len(comments) - MAX_COMMENTS}件', color=0x006e54)
+            _embed = Embed(title=id, description='\n'.join(
+                comments[:MAX_COMMENTS]) + '\n\n' + f'他{len(comments) - MAX_COMMENTS}件', color=0x006e54)
             count += 1
         elif len(comments) > 0:
-            _embed = Embed(title=id,description='\n'.join(comments), color=0x66cdaa if count % 2 == 0 else 0x3cb371)
+            _embed = Embed(title=id, description='\n'.join(
+                comments), color=0x66cdaa if count % 2 == 0 else 0x3cb371)
             count += 1
         await Send(_embed, f'{len(comments)} comments have been fetched')
     if count == 0:
         _embed = Embed(description='新着コメントはありません', color=0x4d4398)
         await Send(_embed, 'No new comments')
 
+
 @tasks.loop(seconds=30)
 async def check_time():
     now = datetime.now(pytz.timezone("Asia/Tokyo"))
     if now.hour == 0 and now.minute == 0:
-        await Send('日付が変わりました', 'Date has changed')
+        NicoCome()
 
 
-@tree.command(name = 'add', description='新着コメントを取得する動画を登録')
-@describe(id = '動画のID sm形式')
+@tree.command(name='add', description='新着コメントを取得する動画を登録')
+@describe(id='動画のID sm形式')
 async def add(ctx: discord.Interaction, id: str):
     debug(f'Command: add {id}')
     try:
@@ -180,16 +200,19 @@ async def add(ctx: discord.Interaction, id: str):
         debug(f'{id} has been added')
     except VideoIdSyntaxError as e:
         await ctx.response.send_message(f'{e}')
-        debug(f'{e}') 
+        debug(f'{e}')
 
-@tree.command(name = 'show', description='登録されている動画の一覧を表示')
+
+@tree.command(name='show', description='登録されている動画の一覧を表示')
 async def show(ctx: discord.Interaction):
     debug('Command: show')
-    _embed = Embed(title='動画の一覧', description='\n'.join([video.id for video in videos]), color=0x87ceeb)
+    _embed = Embed(title='動画の一覧', description='\n'.join(
+        [video.id for video in videos]), color=0x87ceeb)
     await ctx.response.send_message(embed=_embed)
 
-@tree.command(name = 'remove', description='動画の登録を解除')
-@describe(id = '動画のID sm形式')
+
+@tree.command(name='remove', description='動画の登録を解除')
+@describe(id='動画のID sm形式')
 async def remove(ctx: discord.Interaction, id: str):
     debug(f'Command: remove {id}')
     for video in videos:
@@ -201,13 +224,13 @@ async def remove(ctx: discord.Interaction, id: str):
     await ctx.response.send_message(f'{id}は登録されていません')
     debug(f'{id} is not registered')
 
+
 @client.event
 async def on_ready():
     await Send('ボットを起動', 'Bot has started')
     await client.change_presence(activity=discord.Game("ニコニコ動画"))
     await tree.sync()
     await Send('コマンドツリーを同期', 'Command tree has been synced')
-    await NicoCome()
     check_time.start()
 
 client.run(TOKEN)
