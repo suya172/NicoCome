@@ -234,4 +234,5 @@ async def on_ready():
     await Send('コマンドツリーを同期', 'Command tree has been synced')
     check_time.start()
 
+keep_alive()
 client.run(TOKEN)
