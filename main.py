@@ -186,7 +186,7 @@ async def NicoCome():
 async def check_time():
     now = datetime.now(pytz.timezone("Asia/Tokyo"))
     if now.hour == 0 and now.minute == 0:
-        NicoCome()
+        await NicoCome()
 
 
 @tree.command(name='add', description='新着コメントを取得する動画を登録')
