@@ -172,17 +172,18 @@ async def NicoCome():
             _embed = Embed(title=id, description='\n'.join(
                 comments[:MAX_COMMENTS]) + '\n\n' + f'他{len(comments) - MAX_COMMENTS}件', color=0x006e54)
             count += 1
+            await Send(_embed, f'{len(comments)} comments have been fetched')
         elif len(comments) > 0:
             _embed = Embed(title=id, description='\n'.join(
                 comments), color=0x66cdaa if count % 2 == 0 else 0x3cb371)
             count += 1
-        await Send(_embed, f'{len(comments)} comments have been fetched')
+            await Send(_embed, f'{len(comments)} comments have been fetched')
     if count == 0:
         _embed = Embed(description='新着コメントはありません', color=0x4d4398)
         await Send(_embed, 'No new comments')
 
 
-@tasks.loop(seconds=30)
+@tasks.loop(seconds=59)
 async def check_time():
     now = datetime.now(pytz.timezone("Asia/Tokyo"))
     if now.hour == 0 and now.minute == 0:
@@ -208,7 +209,7 @@ async def show(ctx: discord.Interaction):
     debug('Command: show')
     _embed = Embed(title='動画の一覧', description='\n'.join(
         [video.id for video in videos]), color=0x87ceeb)
-    await ctx.response.send_message(embed=_embed)
+    await ctx.response.send_modal(embed=_embed)
 
 
 @tree.command(name='remove', description='動画の登録を解除')
